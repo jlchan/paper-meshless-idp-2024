@@ -8,25 +8,23 @@ include("operator_setup.jl")
 filename = "operators/matrices_150_500.mat"
 filename = "operators/matrices_300_1000.mat"
 filename = "operators/matrices_600_2000.mat"
-filename = "operators/matrices_1200_4000.mat"
+# filename = "operators/matrices_1200_4000.mat"
 
-(; x, y, M, Qx, Qy, wf, Fmask, nx, ny) = get_operators(filename)
+(; x, y, M, Qxy_norm, Qxy_normalized, wf, Fmask, normals)  = StartUpMeshfree(filename)
 
-equations = LinearScalarAdvectionEquation2D(1., 1.)
+equations = LinearScalarAdvectionEquation2D(1., 0.5)
 exact_solution(x, y, t, ::LinearScalarAdvectionEquation2D) = 
-    sin(pi/3 * (x - t)) * sin(pi/3 * (y - t))
-
-# exact_solution(x, y, t, ::LinearScalarAdvectionEquation2D) = 1.0    
+    sin(pi/6 * (x - t)) * sin(pi/6 * (y - 0.5 * t))
 
 u0 = exact_solution.(x, y, 0.0, equations)
 
 function rhs!(du, u, p, t)
-    (; M, Qxy_norm, Qxy_normalized, wf, Fmask, normals, 
-       du_threaded, 
-       inflow, equations) = p
+    (; Qxy_norm, Qxy_normalized, wf, Fmask, normals, 
+       invMdiag, uP, du_threaded, inflow, equations) = p
 
-    # note: Qxy is skew symmetric, so the indices 
-    # of nonzero row and columns are the same.
+    # note: we call "rowvals" here to get the column indices 
+    # because Qxy is skew symmetric, so the indices of nonzero 
+    # rows are the same as indices of nonzero columns.
     cols = rowvals(Qxy_normalized)
     Qxy_vals = nonzeros(Qxy_normalized)
     Qxy_norm_vals = nonzeros(Qxy_norm)
@@ -45,50 +43,27 @@ function rhs!(du, u, p, t)
         du[i] = du_i
     end
 
-    uP = u[Fmask]
+    @. uP = u[Fmask]
     uP[inflow] = @. 2 * exact_solution.(x[Fmask[inflow]], y[Fmask[inflow]], t, equations) - u[Fmask[inflow]]
     @. du[Fmask] += wf * flux_lax_friedrichs(u[Fmask], uP, normals, equations)
-    du .= -M \ du
+    @. du *= -invMdiag    
 end
 
-normals = SVector.(nx, ny)
-
-# nonzeros(Qxy) stores the cols, not the rows. 
-# Qxy is skew symmetric, so we flip the sign 
-# so that Qxy stores the transpose instead for 
-# easy access of rows via sparse CSC format.
-Qxy = -SVector.((Qx - Qx'), (Qy - Qy'))
-
-# precompute quantities for RHS
-Qxy_norm = norm.(Qxy)
-Qxy_normalized = copy(Qxy)
-@. Qxy_normalized.nzval ./= norm(Qxy_normalized.nzval)
-
-# check to make sure sparsity patterns are the same 
-@assert all(Qxy_normalized.rowval .== Qxy_norm.rowval)
-
-# created threaded cache
-du_threaded = [zero(eltype(u0)) for _ in 1:Threads.nthreads()]
-
 # problem-dependent parameters
-a_dot_n = map(n->dot(equations.advection_velocity, n), normals)
+a_dot_n = map(n -> dot(equations.advection_velocity, n), normals)
 inflow = findall(@. a_dot_n <= 0.0)
 
-parameters = (; M, Qxy_norm, Qxy_normalized, 
-                wf, Fmask, normals, 
-                du_threaded,
+parameters = (; Qxy_norm, Qxy_normalized, wf, Fmask, normals, 
+                invMdiag = inv.(M.diag), uP = similar(u0[Fmask]), 
+                du_threaded = [zero(eltype(u0)) for _ in 1:Threads.nthreads()], 
                 inflow, equations)
-tspan = (0, .4)
+
+tspan = (0, .7)
 ode = ODEProblem(rhs!, u0, tspan, parameters)
 sol = solve(ode, SSPRK43(), abstol=1e-6, reltol=1e-3, 
             saveat=LinRange(tspan..., 25), 
-            callback=AliveCallback(alive_interval=10))
+            callback=AliveCallback(alive_interval=50))
 
 w = diag(M)
 u = sol.u[end]
 L2_error = sqrt(sum(w .* (u - exact_solution.(x, y, tspan[end], equations)).^2))
-
-# u = sol.u[end]
-# @gif for u in sol.u
-# scatter(x, y, zcolor=u, ms=2, msw=0, leg=false, colorbar=true)
-# end
