@@ -5,18 +5,19 @@ using OrdinaryDiffEq
 
 include("operator_setup.jl")
 
+filename = "operators/matrices_75_250.mat"
 filename = "operators/matrices_150_500.mat"
 filename = "operators/matrices_300_1000.mat"
-filename = "operators/matrices_600_2000.mat"
-filename = "operators/matrices_1200_4000.mat"
+# filename = "operators/matrices_600_2000.mat"
+# filename = "operators/matrices_1200_4000.mat"
 
 (; x, y, M, Qxy_norm, Qxy_normalized, wf, Fmask, normals)  = StartUpMeshfree(filename)
 
 equations = CompressibleEulerEquations2D(1.4)
 function exact_solution(x, y, t, equations::CompressibleEulerEquations2D)
     v1, v2 = 0.1, 0.2
-    rho = 1 + 0.5 * sinpi(0.1 * (x + y - t * (v1 + v2)))
-    p = 20    
+    rho = 1 + 0.5 * sinpi(1/3 * (x + y - t * (v1 + v2)))
+    p = 2.5
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 
@@ -33,38 +34,40 @@ function rhs!(du, u, p, t)
     cols = rowvals(Qxy_normalized)
     Qxy_vals = nonzeros(Qxy_normalized)
     Qxy_norm_vals = nonzeros(Qxy_norm)
-    Threads.@threads :static for i in axes(Qxy_norm, 1)
-        u_i = u[i]
-        du_i = du_threaded[Threads.threadid()]
-        for ii in nzrange(Qxy_norm, i) 
-            j = cols[ii]
-            nij = Qxy_vals[ii] 
-            norm_nij = Qxy_norm_vals[ii]
+    @inbounds begin 
+        Threads.@threads :static for i in axes(Qxy_norm, 1)
+            u_i = u[i]
+            du_i = du_threaded[Threads.threadid()]
+            for ii in nzrange(Qxy_norm, i) 
+                j = cols[ii]
+                nij = Qxy_vals[ii] 
+                norm_nij = Qxy_norm_vals[ii]
 
-            u_j = u[j]                
-            du_i += numerical_flux(u_i, u_j, nij, equations) * norm_nij
+                u_j = u[j]                
+                du_i += numerical_flux(u_i, u_j, nij, equations) * norm_nij
+            end
+            du[i] = du_i
         end
-        du[i] = du_i
-    end
 
-    @. uP = u[Fmask]
-    Threads.@threads :static for i in inflow
-        u_i = u[Fmask[i]]
-        u_exact = exact_solution(x[Fmask[i]], y[Fmask[i]], t, equations)
-        uP[i] = 2 * u_exact - u_i
-    end
-    Threads.@threads :static for i in outflow
-        rho, v_1, v_2, p = cons2prim(uP[i], equations)
-        rho_exact, _, _, p_exact = cons2prim(exact_solution(x[Fmask[i]], y[Fmask[i]], t, equations), equations)
-        q = SVector(2 * rho_exact - rho, v_1, v_2, 2 * p_exact - p)
-        uP[i] = prim2cons(q, equations)
-    end
-    Threads.@threads :static for i in eachindex(Fmask)
-        du[Fmask[i]] += wf[i] * numerical_flux(u[Fmask[i]], uP[i], normals[i], equations)
-    end    
-    Threads.@threads :static for i in eachindex(du)
-        du[i] *= -invMdiag[i]
-    end
+        @. uP = u[Fmask]
+        Threads.@threads :static for i in inflow
+            u_i = u[Fmask[i]]
+            u_exact = exact_solution(x[Fmask[i]], y[Fmask[i]], t, equations)
+            uP[i] = 2 * u_exact - u_i
+        end
+        Threads.@threads :static for i in outflow
+            rho, v_1, v_2, p = cons2prim(uP[i], equations)
+            rho_exact, _, _, p_exact = cons2prim(exact_solution(x[Fmask[i]], y[Fmask[i]], t, equations), equations)
+            q = SVector(2 * rho_exact - rho, v_1, v_2, 2 * p_exact - p)
+            uP[i] = prim2cons(q, equations)
+        end
+        Threads.@threads :static for i in eachindex(Fmask)
+            du[Fmask[i]] += wf[i] * numerical_flux(u[Fmask[i]], uP[i], normals[i], equations)
+        end    
+        Threads.@threads :static for i in eachindex(du)
+            du[i] *= -invMdiag[i]
+        end
+    end # inbounds
 end
 
 # problem-dependent parameters
@@ -79,12 +82,12 @@ sound_speed(u, equations::CompressibleEulerEquations2D) =
 parameters = (; Qxy_norm, Qxy_normalized, wf, Fmask, normals, 
                 invMdiag = inv.(M.diag), uP = similar(u0[Fmask]), 
                 du_threaded = [zero(eltype(u0)) for _ in 1:Threads.nthreads()], 
-                inflow, outflow, numerical_flux=flux_hllc, equations)
+                inflow, outflow, numerical_flux=flux_lax_friedrichs, equations)
 
-tspan = (0, .2)
+tspan = (0, .7)
 
 ode = ODEProblem(rhs!, u0, tspan, parameters)
-sol = solve(ode, SSPRK43(), abstol=1e-7, reltol=1e-4, 
+sol = solve(ode, SSPRK43(), abstol=1e-5, reltol=1e-3, 
             save_everystep = false, 
             callback=AliveCallback(alive_interval=50))
 
