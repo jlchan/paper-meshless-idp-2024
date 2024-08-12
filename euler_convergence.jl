@@ -76,13 +76,13 @@ a_dot_n = map(n -> dot(advection_velocity, n), normals)
 inflow = findall(@. a_dot_n <= 0.0)
 outflow = findall(@. a_dot_n > 0.0)
 
-sound_speed(u, equations::CompressibleEulerEquations2D) = 
-    sqrt(equations.gamma * Trixi.pressure(u, equations) / Trixi.density(u, equations))
+numerical_flux = flux_lax_friedrichs
+# numerical_flux = flux_hllc
 
 parameters = (; Qxy_norm, Qxy_normalized, wf, Fmask, normals, 
                 invMdiag = inv.(M.diag), uP = similar(u0[Fmask]), 
                 du_threaded = [zero(eltype(u0)) for _ in 1:Threads.nthreads()], 
-                inflow, outflow, numerical_flux=flux_lax_friedrichs, equations)
+                inflow, outflow, numerical_flux, equations)
 
 tspan = (0, .7)
 

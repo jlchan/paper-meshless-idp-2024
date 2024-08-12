@@ -67,10 +67,13 @@ function rhs!(du, u, p, t)
     end
 end
 
+numerical_flux = flux_lax_friedrichs
+# numerical_flux = flux_hllc
+
 parameters = (; Qxy_norm, Qxy_normalized, wf, Fmask, normals, 
                 invMdiag = inv.(M.diag), uP = similar(u0[Fmask]), 
                 du_threaded = [zero(eltype(u0)) for _ in 1:Threads.nthreads()], 
-                numerical_flux=flux_lax_friedrichs, equations)
+                numerical_flux, equations)
 
 tspan = (0, 1.2)
 
