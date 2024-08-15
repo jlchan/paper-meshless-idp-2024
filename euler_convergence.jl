@@ -8,7 +8,7 @@ include("operator_setup.jl")
 filename = "operators/matrices_75_250.mat"
 filename = "operators/matrices_150_500.mat"
 filename = "operators/matrices_300_1000.mat"
-# filename = "operators/matrices_600_2000.mat"
+filename = "operators/matrices_600_2000.mat"
 # filename = "operators/matrices_1200_4000.mat"
 
 (; x, y, M, Qxy_norm, Qxy_normalized, wf, Fmask, normals)  = StartUpMeshfree(filename)
@@ -50,17 +50,14 @@ function rhs!(du, u, p, t)
         end
 
         @. uP = u[Fmask]
+
+        # enforce {u} = exact solution at inflow, do nothing at outflow
         Threads.@threads :static for i in inflow
             u_i = u[Fmask[i]]
             u_exact = exact_solution(x[Fmask[i]], y[Fmask[i]], t, equations)
             uP[i] = 2 * u_exact - u_i
         end
-        Threads.@threads :static for i in outflow
-            rho, v_1, v_2, p = cons2prim(uP[i], equations)
-            rho_exact, _, _, p_exact = cons2prim(exact_solution(x[Fmask[i]], y[Fmask[i]], t, equations), equations)
-            q = SVector(2 * rho_exact - rho, v_1, v_2, 2 * p_exact - p)
-            uP[i] = prim2cons(q, equations)
-        end
+        
         Threads.@threads :static for i in eachindex(Fmask)
             du[Fmask[i]] += wf[i] * numerical_flux(u[Fmask[i]], uP[i], normals[i], equations)
         end    
@@ -76,8 +73,8 @@ a_dot_n = map(n -> dot(advection_velocity, n), normals)
 inflow = findall(@. a_dot_n <= 0.0)
 outflow = findall(@. a_dot_n > 0.0)
 
-numerical_flux = flux_lax_friedrichs
-# numerical_flux = flux_hllc
+# numerical_flux = flux_lax_friedrichs
+numerical_flux = flux_hllc
 
 parameters = (; Qxy_norm, Qxy_normalized, wf, Fmask, normals, 
                 invMdiag = inv.(M.diag), uP = similar(u0[Fmask]), 
@@ -87,7 +84,7 @@ parameters = (; Qxy_norm, Qxy_normalized, wf, Fmask, normals,
 tspan = (0, .7)
 
 ode = ODEProblem(rhs!, u0, tspan, parameters)
-sol = solve(ode, SSPRK43(), abstol=1e-5, reltol=1e-3, 
+sol = solve(ode, SSPRK43(), dt = 1e-8, abstol=1e-6, reltol=1e-4, 
             save_everystep = false, 
             callback=AliveCallback(alive_interval=50))
 
