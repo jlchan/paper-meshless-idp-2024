@@ -5,9 +5,11 @@ using OrdinaryDiffEq
 
 include("operator_setup.jl")
 
-# filename = "operators/matrices_150_500.mat"
-filename = "operators/matrices_300_1000.mat"
-# filename = "operators/matrices_sharingan_150_500.mat"
+# filename = "operators/matrices_k_circle_150_500.mat"
+# filename = "operators/matrices_k_circle_300_1000.mat"
+# filename = "operators/matrices_k_sharingan_150_500.mat"
+#filename = "operators/matrices_sharingan_k_circle_300_1000_240.mat"
+filename = "operators/matrices_sharingan_k_circle_600_2000_480.mat"
 # filename = "operators/matrices_600_2000.mat"
 # filename = "operators/matrices_1200_4000.mat"
 
@@ -15,9 +17,9 @@ filename = "operators/matrices_300_1000.mat"
 
 equations = CompressibleEulerEquations2D(1.4)
 function exact_solution(x, y, t, equations::CompressibleEulerEquations2D)
-    rho = .01 + exp(-25 * ((x-2)^2+y^2))
+    rho = .01 + exp(-25 * (x^2 + y^2))
     v1, v2 = 0.0, 0.0
-    p = rho^equations.gamma
+    p = rho^equations.gamma # p = ρ^γ
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
@@ -59,7 +61,7 @@ function rhs!(du, u, p, t)
             Trixi.boundary_condition_slip_wall(u[Fmask[i]], normals[i],
                                                SVector(x[Fmask[i]], y[Fmask[i]]), t,
                                                numerical_flux, equations)
-        du[Fmask[i]] += wf[i] * boundary_flux        
+        du[Fmask[i]] += wf[i] * boundary_flux
     end
 
     Threads.@threads for i in eachindex(du)
@@ -68,20 +70,22 @@ function rhs!(du, u, p, t)
 end
 
 numerical_flux = flux_lax_friedrichs
-# numerical_flux = flux_hllc
+numerical_flux = flux_hllc
 
 parameters = (; Qxy_norm, Qxy_normalized, wf, Fmask, normals, 
                 invMdiag = inv.(M.diag), uP = similar(u0[Fmask]), 
                 du_threaded = [zero(eltype(u0)) for _ in 1:Threads.nthreads()], 
                 numerical_flux, equations)
 
-tspan = (0, 1.2)
+tspan = (0, 4)
 
 ode = ODEProblem(rhs!, u0, tspan, parameters)
 sol = solve(ode, SSPRK43(), dt=1e-7, abstol=1e-6, reltol=1e-4,
-            saveat=LinRange(tspan..., 25), 
+            saveat=LinRange(tspan..., 50), 
             callback=AliveCallback(alive_interval=10))
 
 w = diag(M)
-rho = getindex.(sol.u[end], 1)
-scatter(x, y, zcolor=rho, ratio=1, leg=false, msw=0, ms=1, colorbar=true)
+@gif for u in sol.u
+    rho = getindex.(u, 1)
+    scatter(x, y, zcolor=rho, ratio=1, leg=false, msw=0, ms=1, colorbar=true)
+end
