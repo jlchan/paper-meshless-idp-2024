@@ -17,7 +17,12 @@ filename = "operators/matrices_sharingan_k_circle_600_2000_480.mat"
 
 equations = CompressibleEulerEquations2D(1.4)
 function exact_solution(x, y, t, equations::CompressibleEulerEquations2D)
-    rho = .01 + exp(-25 * (x^2 + y^2))
+    if (x^2 + y^2) < .4^2
+        rho = 1.0
+    else
+        # rho = 0.125
+        rho = 1e-3
+    end
     v1, v2 = 0.0, 0.0
     p = rho^equations.gamma # p = ρ^γ
 
@@ -77,15 +82,14 @@ parameters = (; Qxy_norm, Qxy_normalized, wf, Fmask, normals,
                 du_threaded = [zero(eltype(u0)) for _ in 1:Threads.nthreads()], 
                 numerical_flux, equations)
 
-tspan = (0, 4)
+tspan = (0, 5.0)
 
 ode = ODEProblem(rhs!, u0, tspan, parameters)
-sol = solve(ode, SSPRK43(), dt=1e-7, abstol=1e-6, reltol=1e-4,
+sol = solve(ode, SSPRK43(), dt=1e-7, abstol=1e-6, reltol=1e-3,
             saveat=LinRange(tspan..., 50), 
             callback=AliveCallback(alive_interval=10))
 
-w = diag(M)
 @gif for u in sol.u
     rho = getindex.(u, 1)
-    scatter(x, y, zcolor=rho, ratio=1, leg=false, msw=0, ms=1, colorbar=true)
+    scatter(x, y, zcolor=rho, ratio=1, leg=false, msw=0, ms=1, colorbar=true, clims=(0, 0.08))
 end
