@@ -20,8 +20,8 @@ function exact_solution(x, y, t, equations::CompressibleEulerEquations2D)
     if (x^2 + y^2) < .4^2
         rho = 1.0
     else
-        # rho = 0.125
-        rho = 1e-3
+        rho = 0.125
+        # rho = 1e-3
     end
     v1, v2 = 0.0, 0.0
     p = rho^equations.gamma # p = ρ^γ
@@ -91,5 +91,6 @@ sol = solve(ode, SSPRK43(), dt=1e-7, abstol=1e-6, reltol=1e-3,
 
 @gif for u in sol.u
     rho = getindex.(u, 1)
-    scatter(x, y, zcolor=rho, ratio=1, leg=false, msw=0, ms=1, colorbar=true, clims=(0, 0.08))
+    #scatter(x, y, zcolor=rho, ratio=1, leg=false, msw=0, ms=1, colorbar=true, clims=(0, 0.08))
+    scatter(x, y, zcolor=rho, ratio=1, leg=false, msw=0, ms=1, colorbar=true, clims=(0, 0.25))
 end
