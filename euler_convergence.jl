@@ -5,10 +5,10 @@ using OrdinaryDiffEq
 
 include("operator_setup.jl")
 
-filename = "operators/matrices_75_250.mat"
-filename = "operators/matrices_150_500.mat"
-filename = "operators/matrices_300_1000.mat"
-filename = "operators/matrices_600_2000.mat"
+filename = "operators/matrices_k_circle_75_250.mat"
+filename = "operators/matrices_k_circle_150_500.mat"
+filename = "operators/matrices_k_circle_300_1000.mat"
+# filename = "operators/matrices_k_circle_600_2000.mat"
 # filename = "operators/matrices_1200_4000.mat"
 
 (; x, y, M, Qxy_norm, Qxy_normalized, wf, Fmask, normals)  = StartUpMeshfree(filename)
@@ -17,6 +17,7 @@ equations = CompressibleEulerEquations2D(1.4)
 function exact_solution(x, y, t, equations::CompressibleEulerEquations2D)
     v1, v2 = 0.1, 0.2
     rho = 1 + 0.5 * sinpi(1/3 * (x + y - t * (v1 + v2)))
+    rho = 1 + 0.5 * abs(sin(pi * (x + y - t * (v1 + v2))))
     p = 2.5
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
