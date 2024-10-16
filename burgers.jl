@@ -5,10 +5,9 @@ using OrdinaryDiffEq
 
 include("operator_setup.jl")
 
-filename = "operators/matrices_150_500.mat"
-filename = "operators/matrices_300_1000.mat"
-# filename = "operators/matrices_600_2000.mat"
-# filename = "operators/matrices_1200_4000.mat"
+filename = "operators/matrices_k_circle_75_250.mat"
+filename = "operators/matrices_k_circle_150_500.mat"
+filename = "operators/matrices_k_circle_300_1000.mat"
 
 (; x, y, M, Qxy_norm, Qxy_normalized, wf, Fmask, normals)  = StartUpMeshfree(filename)
 
