@@ -8,4 +8,4 @@ File descriptions:
 1. differetiation_operator_experiments: Contains the various numerical experiments that were performed on the SBP operators
 2. main_function: simply calls matrix_generator to create all the SBP matrices
 3. matrix_generator: contains numerous functions that create the SBP matrices
-4. point_generator: funciton that generates a point cloud in Ω1 or Ω2. 
+4. point_generator: function that generates a point cloud in Ω1 or Ω2. 
