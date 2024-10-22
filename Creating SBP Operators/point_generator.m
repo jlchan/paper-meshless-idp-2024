@@ -1,4 +1,4 @@
-5%Function point_generator creates a N x 3 matrix where N is the total number
+%Function point_generator creates a N x 3 matrix where N is the total number
 %of points. The first column is the x coordintes, the 2nd column is the y 
 %coordinates and the last column is binary that determines whether the
 %point is on the boudnary.
