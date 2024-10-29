@@ -16,3 +16,10 @@ matrices_sharingan_k_circle refer to Ω2. The first number is n_x (number of eve
 
 Only the smaller sets of matrices are uploaded on this GitHub repository due to size constraints. Refer to this googledrive for all relevant sets: https://drive.google.com/drive/folders/10aj7Ek_eW2ce-M97Pt8a47SvBFAV6pRl?usp=sharing
 
+This folder contains the various files for solving different types of non-linear conservation laws using the meshfree SBP operators.
+Contains the following files:
+1. "advection.jl": Solves advection equation and gives the convergence rates
+2. "burgers.jl": Solves burgers equation and gives the convergence rates
+3. "euler.jl": Solves the 2D incompressible euler equations and contains functions for visualization/plotting
+4. "euler_convergence.jl": Specifically outputs the convergence rates using the meshfree SBP operators
+5. "operator_setup.jl": function that converts the .mat files provided 
