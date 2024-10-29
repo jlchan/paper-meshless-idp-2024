@@ -4,6 +4,7 @@ Reproducibility repo for first-order invariant domain-preserving meshless method
 The `.mat` files are the SBP operators created. 
 
 Each file contains the following set of matrices:
+
 points: Matrix that gives the entire set of points in the domain and classifies it as a boundary point or not  
 H_min: Optimized H matrix  
 E_x, E_y: The E matrices used in SBP  
