@@ -2,8 +2,7 @@ This folder contains the files to create the SBP operators for the two point clo
 
 Steps to follow to generate SBP opeartors:
 1. Select 'main_function_simple.m' for Ω1 and 'main_function_sharingan.m' for Ω2.
-2. Set desired parameters in main_function and run it to create all the SBP operator matrices (Q, E, S, H etc...).
-   The parameters listed in the files are the ones presented the paper. Only adjusting n_x, n_y, n_boundary, and n_boundary_supp (for 'main_function_sharingan.m' only) is needed to reproduce results at various densities. 
+2. Set desired parameters in main_function and run it to create all the SBP operator matrices (Q, E, S, H etc...).The parameters listed in the files are the ones presented the paper. Only adjusting n_x, n_y, n_boundary, and n_boundary_supp (for 'main_function_sharingan.m' only) is needed to reproduce results at various densities. 
 3. Run differetiation_operator_experiments to run the tests that were shown in the paper.
 
 File descriptions:
