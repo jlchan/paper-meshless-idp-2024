@@ -23,3 +23,5 @@ The `.jl` files are files for solving different types of non-linear conservation
 3. "euler.jl": Solves the 2D incompressible euler equations and contains functions for visualization/plotting
 4. "euler_convergence.jl": Specifically outputs the convergence rates using the meshfree SBP operators
 5. "operator_setup.jl": function that converts the .mat files provided 
+
+The Creating SBP Operators folder contains various `.mat` files used to construct the SBP operators. 
