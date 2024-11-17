@@ -1,5 +1,5 @@
 # paper-meshless-idp-2024
-Reproducibility repo for first-order invariant domain-preserving meshless methods
+Reproducibility repo for a [paper on first-order robust meshless methods](https://arxiv.org/pdf/2411.03411)
 
 The `.mat` files are the SBP operators created. 
 
